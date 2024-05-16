@@ -1,0 +1,61 @@
+/* Styles for header */
+header {
+    background-color: blue; /* Set background color of header */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px; /* Add padding for better spacing */
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+}
+
+.logo img {
+    width: 50px; /* Adjust the width of the logo image */
+    height: auto;
+    margin-right: 10px; /* Add some spacing between logo and app name */
+}
+
+h1 {
+    margin: 0;
+    color: white; /* Set color of app name */
+}
+
+nav {
+    display: flex;
+    align-items: center;
+}
+
+ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+}
+
+ul li {
+    margin-right: 20px; /* Add spacing between list items */
+}
+
+ul li:last-child {
+    margin-right: 0; /* Remove margin from last list item */
+}
+
+ul a {
+    color: black;
+    text-decoration: none;
+    font-size: 20px;
+}
+
+/* Responsive styles */
+@media screen and (max-width: 768px) {
+    .logo img {
+        width: 40px; /* Adjust width of logo image for smaller screens */
+    }
+
+    h1 {
+        font-size: 18px; /* Adjust font size of app name for smaller screens */
+    }
+}
