@@ -98,7 +98,8 @@ app.use(express.json());                            // Parse JSON bodies (as sen
 app.get('/', (req, res) => {
     const posts = getPosts();
     const user = getCurrentUser(req) || {};
-    res.render('home', { posts, user });
+
+    res.render('home', { posts, user});
 });
 
 // Register GET route is used for error response from registration
@@ -153,11 +154,19 @@ app.post('/register', (req, res) => {
 
 app.post('/login', (req, res) => {
     // TODO: Login a user
-    console.log(req.session.userId);
-    res.redirect('/login');
+    const user = findUserByUsername(req.body.userName);
+    if(user){
+        loginUser(req, res);
+        res.redirect('/');
+    }
+    else{
+        res.redirect('/login?error=Not%20Found');
+    }
 });
 app.get('/logout', (req, res) => {
     // TODO: Logout the user
+    req.session.loggedIn = false;
+    res.redirect('/');
 });
 app.post('/delete/:id', isAuthenticated, (req, res) => {
     // TODO: Delete a post if the current user is the owner
@@ -197,7 +206,12 @@ function findUserByUsername(username) {
 
 // Function to find a user by user ID
 function findUserById(userId) {
-    // TODO: Return user object if found, otherwise return undefined
+    for(let user of users){
+        if(user.id === userId){
+            return user;
+        }
+    }
+    return false;
 }
 
 // Function to add a new user
@@ -224,11 +238,15 @@ function isAuthenticated(req, res, next) {
 // Function to register a user
 function registerUser(req, res) {
     addUser(req.body.userName);
+    req.session.userId = users[users.length-1].id;
+    console.log('Reg ID: ', req.session.userId);
 }
 
 // Function to login a user
 function loginUser(req, res) {
-    // TODO: Login a user and redirect appropriately
+    let user = findUserByUsername(req.body.userName);
+    req.session.userId = user.id;
+    req.session.loggedIn = true
 }
 
 // Function to logout a user
