@@ -5,12 +5,14 @@
     <section class = "login-area">
         <h2>Login</h2>
         <!-- errors will appear here -->
+        
         {{#if loginError}}
             <p style="color: red;">{{loginError}}</p>
         {{/if}}
         <form action="/login" method="POST">
-            <!-- the login form goes here -->        
-             <button type="submit">Login</button>
+            <!-- the login form goes here -->    
+            <input  name="userName" pattern="[a-zA-Z0-9!$#&]+" title="Only letters, numbers, !$#& are allowed" required>   
+            <button type="submit">Login</button>
         </form>
     </section>
 
@@ -24,7 +26,9 @@
         {{/if}}
         <form action="/register" method="POST">
             <!-- the registration form goes here -->
+            <input  name="userName" pattern="[a-zA-Z0-9!$#&]+" title="Only letters, numbers, !$#& are allowed" required>
             <button type="submit">Register</button>
         </form>
+
     </section>
 </section>

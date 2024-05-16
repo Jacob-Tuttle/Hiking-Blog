@@ -137,11 +137,24 @@ app.get('/profile', isAuthenticated, (req, res) => {
 app.get('/avatar/:username', (req, res) => {
     // TODO: Serve the avatar image for the user
 });
+
+//Register post route to add user name to registered user name list
+//
 app.post('/register', (req, res) => {
-    // TODO: Register a new user
+    if(!findUserByUsername(req.body.userName)){
+        console.log("Registering user: " + req.body.userName);
+        registerUser(req, res);
+        res.redirect('/register'); //Return to login/reg page, user has been added
+    }
+    else{
+        res.redirect('/register?error=Already%20Registered'); //Return to log/reg page with error
+    }
 });
+
 app.post('/login', (req, res) => {
     // TODO: Login a user
+    console.log(req.session.userId);
+    res.redirect('/login');
 });
 app.get('/logout', (req, res) => {
     // TODO: Logout the user
@@ -174,7 +187,12 @@ let users = [
 
 // Function to find a user by username
 function findUserByUsername(username) {
-    // TODO: Return user object if found, otherwise return undefined
+    for(let user of users){
+        if(user.username === username){
+            return user;
+        }
+    }
+    return false;
 }
 
 // Function to find a user by user ID
@@ -184,7 +202,13 @@ function findUserById(userId) {
 
 // Function to add a new user
 function addUser(username) {
-    // TODO: Create a new user object and add to users array
+    tempUser = {
+        id: users[users.length-1].id+1, 
+        username: username, 
+        avatar_url: undefined, 
+        memberSince: new Date()
+    };
+    users.push(tempUser);
 }
 
 // Middleware to check if user is authenticated
@@ -199,7 +223,7 @@ function isAuthenticated(req, res, next) {
 
 // Function to register a user
 function registerUser(req, res) {
-    // TODO: Register a new user and redirect appropriately
+    addUser(req.body.userName);
 }
 
 // Function to login a user
