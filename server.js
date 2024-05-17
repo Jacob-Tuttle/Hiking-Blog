@@ -99,6 +99,8 @@ app.get('/', (req, res) => {
     const posts = getPosts();
     const user = getCurrentUser(req) || {};
 
+    console.log(posts.length);
+
     res.render('home', { posts, user});
 });
 
@@ -127,7 +129,8 @@ app.get('/post/:id', (req, res) => {
     // TODO: Render post detail page
 });
 app.post('/posts', (req, res) => {
-    // TODO: Add a new post and redirect to home
+    addPost(req.session.title, req.session.content, getCurrentUser(req.session.userId));
+    app.redirect('/');
 });
 app.post('/like/:id', (req, res) => {
     // TODO: Update post likes
@@ -153,9 +156,7 @@ app.post('/register', (req, res) => {
 });
 
 app.post('/login', (req, res) => {
-    // TODO: Login a user
-    const user = findUserByUsername(req.body.userName);
-    if(user){
+    if(findUserByUsername(req.body.userName)){
         loginUser(req, res);
         res.redirect('/');
     }
@@ -164,8 +165,7 @@ app.post('/login', (req, res) => {
     }
 });
 app.get('/logout', (req, res) => {
-    // TODO: Logout the user
-    req.session.loggedIn = false;
+    logoutUser(req,res);
     res.redirect('/');
 });
 app.post('/delete/:id', isAuthenticated, (req, res) => {
@@ -242,14 +242,15 @@ function registerUser(req, res) {
 
 // Function to login a user
 function loginUser(req, res) {
-    let user = findUserByUsername(req.body.userName);
+    const user = findUserByUsername(req.body.userName);
     req.session.userId = user.id;
     req.session.loggedIn = true
 }
 
 // Function to logout a user
 function logoutUser(req, res) {
-    // TODO: Destroy session and redirect appropriately
+    req.session.userId = undefined;
+    req.session.loggedIn = false;
 }
 
 // Function to render the profile page
@@ -269,7 +270,7 @@ function handleAvatar(req, res) {
 
 // Function to get the current user from session
 function getCurrentUser(req) {
-    // TODO: Return the user object if the session user ID matches
+    return findUserById(req.session.userId);
 }
 
 // Function to get all posts, sorted by latest first
@@ -279,7 +280,15 @@ function getPosts() {
 
 // Function to add a new post
 function addPost(title, content, user) {
-    // TODO: Create a new post object and add to posts array
+    const tempPost = {
+        id: 1,
+        title: title,
+        content: content,
+        userName: user.username,
+        timestamp: new Date(),
+        likes: 0
+    };
+    posts.push(tempPost);
 }
 
 // Function to generate an image avatar

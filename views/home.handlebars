@@ -22,7 +22,7 @@
 
             <div id="emoji-container" class="emoji-panel" style="display: none;">
                 <!-- input field for the emoji search, use oninput="searchEmojis() -->
-                <input oninput="searchEmojis()">
+                <input placeholder="Search emojis" oninput="searchEmojis()">
                 <!-- a div, id = "emoji-grid" -->
                 <div id="emoji-grid"></div>
             </div>
@@ -31,7 +31,6 @@
 
     <section class="posts-list">
         <!-- recent posts -->
-
         {{#if posts.length}}
         <ul>
             {{#each posts}}
@@ -41,6 +40,7 @@
         </ul>
         {{else}}
             <!-- no posts, oh no, what now? -->
+            <h1>NO POSTS</h1>
         {{/if}}
     </section>
 </section>
@@ -89,7 +89,7 @@
         // array.filter takes a predicate
         // use string.includes. 
 
-        const filteredEmojis = allEmojis.filter(...);
+        const filteredEmojis = allEmojis.filter()
         
         displayEmojis(filteredEmojis);
     }

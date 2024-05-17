@@ -46,6 +46,12 @@
     border-radius: 5px;
 }
 
+#emoji-container {
+    width: 100%;
+    margin-left: 40px;
+    margin-top: 20px;
+}
+
 form {
     display: flex;
     align-items: center;
