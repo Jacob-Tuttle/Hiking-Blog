@@ -1,0 +1,66 @@
+.login-register {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+
+.login-area, .register-area {
+    height: 550px;
+    width: 325px;
+    background-color: #f9f9f9;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border-radius: 10px;
+    margin: 30px;
+    padding-top: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+
+.login-area h2, .register-area h2{
+    margin: 0;
+    text-align: center;
+}
+
+.login-area form, .register-area form {
+    display: flex;
+    width: 80%;
+    flex-direction: column;
+}
+
+.login-area input, .register-area input {
+    height: 40px;
+    margin-bottom: 20px;
+    border-radius: 5px;
+    outline: none;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border: none;
+    font-size: 20px;
+}
+
+.login-area button, .register-area button {
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.login-area button:hover, .register-area button:hover {
+    background-color: #45a049;
+}
+
+.login-area p, .register-area p {
+    color: red;
+    margin-top: 10px;
+    text-align: center;
+}
+
+#or {
+    margin: 80px;
+    font-size: 30px;
+}

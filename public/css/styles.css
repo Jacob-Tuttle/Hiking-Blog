@@ -1,4 +1,7 @@
 /* Styles for header */
+body {
+    margin:0;
+}
 header {
     background-color: blue; /* Set background color of header */
     display: flex;
@@ -58,4 +61,15 @@ ul a {
     h1 {
         font-size: 18px; /* Adjust font size of app name for smaller screens */
     }
+}
+
+footer {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+
+    width: 100%;
+    text-align: center;
+    padding: 10px 0; /* Adjust padding as needed */
+    background-color: blue;
 }
