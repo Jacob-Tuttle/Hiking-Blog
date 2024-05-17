@@ -19,6 +19,12 @@
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
+@media screen and (max-width: 850px){
+    .login-register {
+        flex-direction: column;
+    }
+}
+
 
 .login-area h2, .register-area h2{
     margin: 0;
