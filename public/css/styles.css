@@ -3,7 +3,7 @@ body {
     margin:0;
 }
 header {
-    background-color: blue; /* Set background color of header */
+    background-color: lightgreen; /* Set background color of header */
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -71,5 +71,5 @@ footer {
     width: 100%;
     text-align: center;
     padding: 10px 0; /* Adjust padding as needed */
-    background-color: blue;
+    background-color: lightgreen;
 }

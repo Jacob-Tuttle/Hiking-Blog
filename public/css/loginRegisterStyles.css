@@ -22,7 +22,7 @@
 
 .login-area h2, .register-area h2{
     margin: 0;
-    text-align: center;
+    text-align: left;
 }
 
 .login-area form, .register-area form {
