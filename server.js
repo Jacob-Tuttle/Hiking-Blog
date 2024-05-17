@@ -238,8 +238,6 @@ function isAuthenticated(req, res, next) {
 // Function to register a user
 function registerUser(req, res) {
     addUser(req.body.userName);
-    req.session.userId = users[users.length-1].id;
-    console.log('Reg ID: ', req.session.userId);
 }
 
 // Function to login a user
