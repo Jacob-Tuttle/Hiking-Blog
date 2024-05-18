@@ -2,6 +2,8 @@ const express = require('express');
 const expressHandlebars = require('express-handlebars');
 const session = require('express-session');
 const canvas = require('canvas');
+const { createCanvas } = require('canvas');
+
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Configuration and Setup
@@ -99,7 +101,7 @@ app.get('/', (req, res) => {
     const posts = getPosts();
     const user = getCurrentUser(req) || {};
 
-    console.log(posts.length);
+    //console.log(posts.length);
 
     res.render('home', { posts, user});
 });
@@ -138,15 +140,20 @@ app.post('/like/:id', (req, res) => {
 app.get('/profile', isAuthenticated, (req, res) => {
     // TODO: Render profile page
 });
+
+//Will generate each time the page is refreshed 
+//Should be presistant not sure how to impelement right now
 app.get('/avatar/:username', (req, res) => {
-    // TODO: Serve the avatar image for the user
+    const avatar = handleAvatar(req,res);
+    const currentUser = getCurrentUser(req);
+    res.setHeader('Content-Type', 'image/png');
+    res.send(avatar);
 });
 
 //Register post route to add user name to registered user name list
 //
 app.post('/register', (req, res) => {
     if(!findUserByUsername(req.body.userName)){
-        console.log("Registering user: " + req.body.userName);
         registerUser(req, res);
         res.redirect('/register'); //Return to login/reg page, user has been added
     }
@@ -244,13 +251,18 @@ function registerUser(req, res) {
 function loginUser(req, res) {
     const user = findUserByUsername(req.body.userName);
     req.session.userId = user.id;
-    req.session.loggedIn = true
+    req.session.loggedIn = true;
+    req.session.username = user.username;
+    //req.session.memberSince = user.memberSince;
 }
 
 // Function to logout a user
 function logoutUser(req, res) {
     req.session.userId = undefined;
     req.session.loggedIn = false;
+    req.session.username = undefined;
+    req.session.avatar_url =  undefined;
+    //req.session.memberSince = user.memberSince;
 }
 
 // Function to render the profile page
@@ -263,10 +275,27 @@ function updatePostLikes(req, res) {
     // TODO: Increment post likes if conditions are met
 }
 
+//Function to find the first letter of a username
+function getFirstLetter(username){
+    const letters = username.match(/[a-zA-z]/) //Array of letters matching regExp
+
+    if(letters){
+        return letters[0];
+    }
+    else{
+        return 'A'; //Default if username contains no letters
+    }
+}
+
+// Function to handle avatar generation and serving
 // Function to handle avatar generation and serving
 function handleAvatar(req, res) {
-    // TODO: Generate and serve the user's avatar image
+    let avatar = undefined;
+    console.log('handle avatar: ' + req.session.username);
+    avatar = generateAvatar(getFirstLetter(req.session.username), parseInt(req.query.width, 10), parseInt(req.query.height, 10));
+    return avatar;
 }
+
 
 // Function to get the current user from session
 function getCurrentUser(req) {
@@ -293,11 +322,40 @@ function addPost(title, content, user) {
 
 // Function to generate an image avatar
 function generateAvatar(letter, width = 100, height = 100) {
-    // TODO: Generate an avatar image with a letter
-    // Steps:
-    // 1. Choose a color scheme based on the letter
-    // 2. Create a canvas with the specified width and height
-    // 3. Draw the background color
-    // 4. Draw the letter in the center
-    // 5. Return the avatar as a PNG buffer
+    const colorScheme = ["#4369D9", "#C2E0F2", "#95A617", "#D9C355", "#BFAB6F"];
+
+    if (typeof width !== 'number' || typeof height !== 'number' || width <= 0 || height <= 0) {
+        throw new Error('Invalid width or height values');
+    }
+
+    //generate canvas
+    const canvas = createCanvas(width, height);
+    const ctx = canvas.getContext('2d');
+
+    //background
+    ctx.fillStyle = colorScheme[Math.floor(Math.random() * 5)];
+    roundedRect(ctx, 0, 0, width, height, 10);
+    ctx.fill();
+
+    //text
+    ctx.fillStyle = '#000000';
+    ctx.font = `${Math.min(width, height) * 0.6}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(letter.toUpperCase(), width / 2, height / 2);
+
+    //Return the avatar as a PNG buffer
+    return canvas.toBuffer('image/png');
+}
+
+//Source: https://www.youtube.com/watch?v=nVal6k08pQY
+// Function to draw a rounded rectangle
+function roundedRect(ctx, x, y, width, height, radius) {
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.arcTo(x + width, y, x + width, y + height, radius);
+    ctx.arcTo(x + width, y + height, x, y + height, radius);
+    ctx.arcTo(x, y + height, x, y, radius);
+    ctx.arcTo(x, y, x + width, y, radius);
+    ctx.closePath();
 }
