@@ -1,0 +1,32 @@
+.post{
+    width: 700px;
+    height: 200px;
+    background-color: blue;
+    margin-bottom: 20px;
+
+    display:flex;
+    flex-direction: row;
+
+    padding: 10px;
+    border-radius: 10px;
+}
+
+.post-avatar {
+    margin-right: 10px;
+}
+
+.post-status-bar{
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    width: 100%;
+    margin-top: auto;
+}
+
+.post-status-bar a{
+    margin-right: 10px;
+}
+
+.post-status-bar .likes-section{
+    margin-right: 100px;
+}

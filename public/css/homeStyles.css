@@ -3,7 +3,9 @@
     display: flex;
     flex-direction: row;
     align-items: center;
+    justify-content: space-between; /* Change from center to space-between */
     padding: 20px;
+    margin: 0; /* Add this to reset default margin */
 }
 
 .post-form{
@@ -58,4 +60,25 @@ form {
     flex-direction: column;
     width: 90%;
     
+}
+
+.content-container h1 {
+    color: black;
+}
+
+.posts-list {
+    margin-left: 100px;
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+}
+
+.posts-list ul{
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+}
+
+.posts-list h1 {
+    margin-bottom: 20px;
 }
