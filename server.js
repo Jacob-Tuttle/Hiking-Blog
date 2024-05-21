@@ -332,8 +332,16 @@ function addPost(title, content, user) {
     const minutes = date.getMinutes();
 
     const fullDate = year+'-'+month+'-'+day+'  '+hour+':'+minutes;
+
+    let ID;
+    if(posts.length === 0){
+        ID = 1;
+    }
+    else{
+        ID = posts[posts.length-1].id+1;
+    }
     const tempPost = {
-        id: posts.length+1,
+        id: ID,
         title: title,
         content: content,
         username: user.username,
@@ -345,7 +353,14 @@ function addPost(title, content, user) {
 
 function deletePost(req,res){
     if(verifyOwner(req)){
-        posts.splice(req.params.id-1,1)
+        let index = -1;
+        for(let x = 0; x<posts.length; x++){
+            if(req.params.id === String(posts[x].id)){
+                index = x;
+                break;
+            }
+        }
+        posts.splice(index,1);
     }
 }
 
