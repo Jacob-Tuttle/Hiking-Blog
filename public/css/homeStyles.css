@@ -2,10 +2,15 @@
 .content-container {
     display: flex;
     flex-direction: row;
-    align-items: center;
     justify-content: space-between; /* Change from center to space-between */
     padding: 20px;
     margin: 0; /* Add this to reset default margin */
+}
+
+@media screen and (max-width: 1330px){
+    .content-container{
+        flex-direction: column;
+    }
 }
 
 .post-form{

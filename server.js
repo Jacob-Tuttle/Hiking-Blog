@@ -129,10 +129,12 @@ app.get('/error', (req, res) => {
 
 app.get('/post/:id', (req, res) => {
     // TODO: Render post detail page
+
 });
 app.post('/posts', (req, res) => {
-    addPost(req.session.title, req.session.content, getCurrentUser(req.session.userId));
-    app.redirect('/');
+    console.log(req.session.userId);
+    addPost(req.body.title, req.body.content, getCurrentUser(req));
+    res.redirect('/');
 });
 app.post('/like/:id', (req, res) => {
     // TODO: Update post likes
@@ -144,8 +146,11 @@ app.get('/profile', isAuthenticated, (req, res) => {
 //Will generate each time the page is refreshed 
 //Should be presistant not sure how to impelement right now
 app.get('/avatar/:username', (req, res) => {
+
+    console.log("User requesting avatar: " + req.params.username);
+
     const avatar = handleAvatar(req,res);
-    const currentUser = getCurrentUser(req);
+
     res.setHeader('Content-Type', 'image/png');
     res.send(avatar);
 });
@@ -196,9 +201,12 @@ let posts = [
     { id: 1, title: 'Sample Post', content: 'This is a sample post.', username: 'SampleUser', timestamp: '2024-01-01 10:00', likes: 0 },
     { id: 2, title: 'Another Post', content: 'This is another sample post.', username: 'AnotherUser', timestamp: '2024-01-02 12:00', likes: 0 },
 ];
+
+const test1 = generateAvatar('S');
+const test2 = generateAvatar('A');
 let users = [
-    { id: 1, username: 'SampleUser', avatar_url: undefined, memberSince: '2024-01-01 08:00' },
-    { id: 2, username: 'AnotherUser', avatar_url: undefined, memberSince: '2024-01-02 09:00' },
+    { id: 1, username: 'SampleUser', avatar_url: test1, memberSince: '2024-01-01 08:00' },
+    { id: 2, username: 'AnotherUser', avatar_url: test2, memberSince: '2024-01-02 09:00' },
 ];
 
 // Function to find a user by username
@@ -226,7 +234,7 @@ function addUser(username) {
     tempUser = {
         id: users[users.length-1].id+1, 
         username: username, 
-        avatar_url: undefined, 
+        avatar_url: generateAvatar(getFirstLetter(username)), 
         memberSince: new Date()
     };
     users.push(tempUser);
@@ -253,6 +261,7 @@ function loginUser(req, res) {
     req.session.userId = user.id;
     req.session.loggedIn = true;
     req.session.username = user.username;
+    req.session.avatar_url = user.avatar_url;
     //req.session.memberSince = user.memberSince;
 }
 
@@ -290,10 +299,13 @@ function getFirstLetter(username){
 // Function to handle avatar generation and serving
 // Function to handle avatar generation and serving
 function handleAvatar(req, res) {
-    let avatar = undefined;
-    console.log('handle avatar: ' + req.session.username);
-    avatar = generateAvatar(getFirstLetter(req.session.username), parseInt(req.query.width, 10), parseInt(req.query.height, 10));
-    return avatar;
+    if(findUserByUsername(req.params.username).avatar_url === undefined){
+        findUserByUsername(req.params.username).avatar_url = generateAvatar(getFirstLetter(req.session.username));
+        return findUserByUsername(req.params.username).avatar_url;
+    }
+    else{
+        return findUserByUsername(req.params.username).avatar_url;
+    }
 }
 
 
@@ -309,12 +321,25 @@ function getPosts() {
 
 // Function to add a new post
 function addPost(title, content, user) {
+    console.log("USER POSTING: "+user.username);
+
+    const date = new Date();
+
+    const day = date.getDay();
+    const month = date.getMonth();
+    const year = date.getFullYear();
+
+    const hour = date.getHours();
+    const minutes = date.getMinutes();
+
+    const fullDate = year+'-'+month+'-'+day+'  '+hour+':'+minutes;
+
     const tempPost = {
-        id: 1,
+        id: user.id,
         title: title,
         content: content,
-        userName: user.username,
-        timestamp: new Date(),
+        username: user.username,
+        timestamp: fullDate,
         likes: 0
     };
     posts.push(tempPost);

@@ -1,12 +1,12 @@
 {{! Partial for a single post }}
 <div class="post">
     <div class="post-avatar">
-        <img src="{{#if user.avatar_url}}
-                {{user.avatar_url}}
-            {{else}}
-                /avatar/{{user.username}}?width=50&height=50
-            {{/if}}" 
-            alt="User Avatar" 
+        <img src="{{#if avatar_url}}
+                        {{avatar_url}}
+                    {{else}}
+                        /avatar/{{username}}
+                    {{/if}}" 
+            alt="User {{username}}" 
             class="header-avatar">
         <!-- the user's avatar -->
     </div>
