@@ -27,6 +27,21 @@
     margin-right: 10px;
 }
 
-.post-status-bar .likes-section{
+.post-status-bar .interaction-section{
     margin-right: 20px;
 }
+
+.post-status-bar a {
+    color: white;
+}
+
+.interaction-section a:hover {
+    color:red;
+}
+
+.preserve-newline {
+    /* Forcing text to wrap within the container */
+    word-wrap: break-word;
+    /* Ensuring long words are broken and wrapped */
+    overflow-wrap: break-word;
+} 

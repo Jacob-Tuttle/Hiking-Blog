@@ -10,6 +10,7 @@
 @media screen and (max-width: 1330px){
     .content-container{
         flex-direction: column;
+        align-items: center;
     }
 }
 

@@ -100,9 +100,6 @@ app.use(express.json());                            // Parse JSON bodies (as sen
 app.get('/', (req, res) => {
     const posts = getPosts();
     const user = getCurrentUser(req) || {};
-
-    //console.log(posts.length);
-
     res.render('home', { posts, user});
 });
 
@@ -129,15 +126,17 @@ app.get('/error', (req, res) => {
 
 app.get('/post/:id', (req, res) => {
     // TODO: Render post detail page
-
 });
+
 app.post('/posts', (req, res) => {
-    console.log(req.session.userId);
     addPost(req.body.title, req.body.content, getCurrentUser(req));
     res.redirect('/');
 });
 app.post('/like/:id', (req, res) => {
-    // TODO: Update post likes
+    if(req.session.username !== undefined){
+        updatePostLikes(req,res);
+    }
+    res.redirect('/');
 });
 app.get('/profile', isAuthenticated, (req, res) => {
     // TODO: Render profile page
@@ -146,11 +145,7 @@ app.get('/profile', isAuthenticated, (req, res) => {
 //Will generate each time the page is refreshed 
 //Should be presistant not sure how to impelement right now
 app.get('/avatar/:username', (req, res) => {
-
-    console.log("User requesting avatar: " + req.params.username);
-
     const avatar = handleAvatar(req,res);
-
     res.setHeader('Content-Type', 'image/png');
     res.send(avatar);
 });
@@ -181,7 +176,8 @@ app.get('/logout', (req, res) => {
     res.redirect('/');
 });
 app.post('/delete/:id', isAuthenticated, (req, res) => {
-    // TODO: Delete a post if the current user is the owner
+    deletePost(req,res);
+    res.redirect('/');
 });
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -282,6 +278,13 @@ function renderProfile(req, res) {
 // Function to update post likes
 function updatePostLikes(req, res) {
     // TODO: Increment post likes if conditions are met
+    for(let post of posts){
+        if(String(post.id) === req.params.id){
+            post.likes += 1;
+            return;
+        }
+    }
+    return;
 }
 
 //Function to find the first letter of a username
@@ -321,8 +324,6 @@ function getPosts() {
 
 // Function to add a new post
 function addPost(title, content, user) {
-    console.log("USER POSTING: "+user.username);
-
     const date = new Date();
 
     const day = date.getDay();
@@ -333,9 +334,8 @@ function addPost(title, content, user) {
     const minutes = date.getMinutes();
 
     const fullDate = year+'-'+month+'-'+day+'  '+hour+':'+minutes;
-
     const tempPost = {
-        id: user.id,
+        id: posts.length+1,
         title: title,
         content: content,
         username: user.username,
@@ -343,6 +343,22 @@ function addPost(title, content, user) {
         likes: 0
     };
     posts.push(tempPost);
+}
+
+function deletePost(req,res){
+    if(verifyOwner(req)){
+        posts.splice(req.params.id-1,1)
+    }
+}
+
+function verifyOwner(req){
+    for(let post of posts){
+        if(String(post.id) === req.params.id){
+            if(post.username === req.session.username)
+                return true;
+        }
+    }
+    return false;
 }
 
 // Function to generate an image avatar
