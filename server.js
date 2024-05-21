@@ -270,7 +270,13 @@ function logoutUser(req, res) {
 
 // Function to render the profile page
 function renderProfile(req, res) {
-    return posts.filter(post => req.session.username === post.username);
+    let filteredPosts = [];
+    for(let post of posts){
+        if(post.username === req.session.username){
+            filteredPosts.push(post);
+        }
+    }
+    return filteredPosts;
 }
 
 // Function to update post likes
