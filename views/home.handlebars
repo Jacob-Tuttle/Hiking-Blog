@@ -2,7 +2,7 @@
 {{!< main }}
 
 {{! New Post Submission Form }}
-<section class="content-container">
+<section class="content-container" {{#unless loggedIn}}style="justify-content: center"{{/unless}}>
     {{#if loggedIn}}
         <!-- show the create post form when logged in -->
         <section class="post-form">
@@ -12,7 +12,7 @@
                     <input id="postTitle" name="title" placeholder="enter a title">
                 </div>
                 <div class="text-box">
-                    <textarea class="postContent" style="max-width: 450px; max-height: 450px" placeholder="Whats on your mind"></textarea>
+                    <textarea name="content" class="postContent" style="max-width: 450px; max-height: 450px" placeholder="Whats on your mind"></textarea>
                 </div>
                 <div class="form-actions">
                     <button type="button" class="emoji-button" onclick="toggleEmojiPanel()">😀</button>
