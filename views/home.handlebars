@@ -31,7 +31,7 @@
     {{/if}}
 
     <!---->
-    <section class="posts-list">
+    <section class="posts-list" {{#unless posts.length}}style="margin-right: 25%"{{/unless}}>
         <h1>Recent Posts</h1>
         <!-- recent posts -->
         {{#if posts.length}}
