@@ -140,8 +140,9 @@ app.get('/profile', isAuthenticated, (req, res) => {
     res.render('profile', {posts, user})
 });
 
-//Will generate each time the page is refreshed 
-//Should be presistant not sure how to impelement right now
+
+//Reuturns a user avatar based on a username
+//
 app.get('/avatar/:username', (req, res) => {
     const avatar = handleAvatar(req,res);
     res.setHeader('Content-Type', 'image/png');
@@ -160,6 +161,8 @@ app.post('/register', (req, res) => {
     }
 });
 
+//Sets session variables and redirects to homepage
+//
 app.post('/login', (req, res) => {
     if(findUserByUsername(req.body.userName)){
         loginUser(req, res);
@@ -169,10 +172,15 @@ app.post('/login', (req, res) => {
         res.redirect('/login?error=Not%20Found');
     }
 });
+//Clears session variables and redirects to homepage
+//
 app.get('/logout', (req, res) => {
     logoutUser(req,res);
     res.redirect('/');
 });
+
+//Deletes a post based on a post id
+//
 app.post('/delete/:id', isAuthenticated, (req, res) => {
     deletePost(req,res);
     res.redirect('/');
@@ -223,13 +231,27 @@ function findUserById(userId) {
     return false;
 }
 
+//get the current date and format it
+function getDate(){
+    const date = new Date();
+
+    const day = date.getDay();
+    const month = date.getMonth();
+    const year = date.getFullYear();
+
+    const hour = date.getHours();
+    const minutes = date.getMinutes();
+
+    return year+'-'+month+'-'+day+'  '+hour+':'+minutes;
+}
+
 // Function to add a new user
 function addUser(username) {
     tempUser = {
         id: users[users.length-1].id+1, 
         username: username, 
         avatar_url: generateAvatar(getFirstLetter(username)), 
-        memberSince: new Date()
+        memberSince: getDate(),
     };
     users.push(tempUser);
 }
@@ -256,7 +278,7 @@ function loginUser(req, res) {
     req.session.loggedIn = true;
     req.session.username = user.username;
     req.session.avatar_url = user.avatar_url;
-    //req.session.memberSince = user.memberSince;
+    req.session.memberSince = user.memberSince;
 }
 
 // Function to logout a user
@@ -265,7 +287,7 @@ function logoutUser(req, res) {
     req.session.loggedIn = false;
     req.session.username = undefined;
     req.session.avatar_url =  undefined;
-    //req.session.memberSince = user.memberSince;
+    req.session.memberSince = undefined;
 }
 
 // Function to render the profile page
@@ -281,7 +303,6 @@ function renderProfile(req, res) {
 
 // Function to update post likes
 function updatePostLikes(req, res) {
-    // TODO: Increment post likes if conditions are met
     for(let post of posts){
         if(String(post.id) === req.params.id){
             post.likes += 1;
@@ -304,7 +325,6 @@ function getFirstLetter(username){
 }
 
 // Function to handle avatar generation and serving
-// Function to handle avatar generation and serving
 function handleAvatar(req, res) {
     if(findUserByUsername(req.params.username).avatar_url === undefined){
         findUserByUsername(req.params.username).avatar_url = generateAvatar(getFirstLetter(req.session.username));
@@ -314,7 +334,6 @@ function handleAvatar(req, res) {
         return findUserByUsername(req.params.username).avatar_url;
     }
 }
-
 
 // Function to get the current user from session
 function getCurrentUser(req) {
@@ -328,17 +347,6 @@ function getPosts() {
 
 // Function to add a new post
 function addPost(title, content, user) {
-    const date = new Date();
-
-    const day = date.getDay();
-    const month = date.getMonth();
-    const year = date.getFullYear();
-
-    const hour = date.getHours();
-    const minutes = date.getMinutes();
-
-    const fullDate = year+'-'+month+'-'+day+'  '+hour+':'+minutes;
-
     let ID;
     if(posts.length === 0){
         ID = 1;
@@ -351,12 +359,13 @@ function addPost(title, content, user) {
         title: title,
         content: content,
         username: user.username,
-        timestamp: fullDate,
+        timestamp: getDate(),
         likes: 0
     };
     posts.push(tempPost);
 }
 
+//Function to delete a post
 function deletePost(req,res){
     if(verifyOwner(req)){
         let index = -1;
@@ -370,6 +379,8 @@ function deletePost(req,res){
     }
 }
 
+//Verify that post from the requested id has 
+//matching username with the currently logged in user
 function verifyOwner(req){
     for(let post of posts){
         if(String(post.id) === req.params.id){
