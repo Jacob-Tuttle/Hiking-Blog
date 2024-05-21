@@ -123,11 +123,6 @@ app.get('/error', (req, res) => {
 
 // Additional routes that you must implement
 
-
-app.get('/post/:id', (req, res) => {
-    // TODO: Render post detail page
-});
-
 app.post('/posts', (req, res) => {
     addPost(req.body.title, req.body.content, getCurrentUser(req));
     res.redirect('/');
@@ -140,6 +135,9 @@ app.post('/like/:id', (req, res) => {
 });
 app.get('/profile', isAuthenticated, (req, res) => {
     // TODO: Render profile page
+    const user = getCurrentUser(req);
+    const posts = renderProfile(req, res)
+    res.render('profile', {posts, user})
 });
 
 //Will generate each time the page is refreshed 
@@ -272,7 +270,7 @@ function logoutUser(req, res) {
 
 // Function to render the profile page
 function renderProfile(req, res) {
-    // TODO: Fetch user posts and render the profile page
+    return posts.filter(post => req.session.username === post.username);
 }
 
 // Function to update post likes

@@ -3,7 +3,9 @@
 
 <div class="profile-container">
     <div class="profile-avatar">
-        <!-- Correct path for the default avatar image -->
+        <img src="/avatar/{{user.username}}" 
+            alt="User {{user.username}}" 
+            class="header-avatar">
     </div>
     
     <section class="profile-info">
@@ -19,7 +21,7 @@
     {{#if user.posts.length}}
         <ul>
             {{#each user.posts}}
-                {{> post this}}
+                {{> post this user=../user}}
             {{/each}}
         </ul>
     {{else}}
