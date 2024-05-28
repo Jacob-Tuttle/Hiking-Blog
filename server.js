@@ -3,6 +3,8 @@ const expressHandlebars = require('express-handlebars');
 const session = require('express-session');
 const canvas = require('canvas');
 const { createCanvas } = require('canvas');
+const sqlite = require('sqlite');
+const sqlite3 = require('sqlite3');
 
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -60,6 +62,7 @@ app.engine(
 app.set('view engine', 'handlebars');
 app.set('views', './views');
 
+
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Middleware
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -97,9 +100,11 @@ app.use(express.json());                            // Parse JSON bodies (as sen
 // We pass the posts and user variables into the home
 // template
 //
-app.get('/', (req, res) => {
-    const posts = getPosts();
+app.get('/', async (req, res) => {
+    const posts = await getPosts();
     const user = getCurrentUser(req) || {};
+
+    console.log("POST LENGTH: ", posts.length);
     res.render('home', { posts, user});
 });
 
@@ -143,8 +148,8 @@ app.get('/profile', isAuthenticated, (req, res) => {
 
 //Reuturns a user avatar based on a username
 //
-app.get('/avatar/:username', (req, res) => {
-    const avatar = handleAvatar(req,res);
+app.get('/avatar/:username', async (req, res) => {
+    const avatar = await handleAvatar(req,res);
     res.setHeader('Content-Type', 'image/png');
     res.send(avatar);
 });
@@ -195,14 +200,83 @@ app.listen(PORT, () => {
 });
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// Support Functions and Variables
+//Initlize DB
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-// Example data for posts and users
-let posts = [
-    { id: 1, title: 'Sample Post', content: 'This is a sample post.', username: 'SampleUser', timestamp: '2024-01-01 10:00', likes: 0 },
-    { id: 2, title: 'Another Post', content: 'This is another sample post.', username: 'AnotherUser', timestamp: '2024-01-02 12:00', likes: 0 },
-];
+const dbFileName = 'websiteData.db';
+
+async function initializeDB() {
+    const db = await sqlite.open({ filename: dbFileName, driver: sqlite3.Database });
+
+    // Check if users and posts tables exist
+    const usersTableExists = await db.get(`SELECT name FROM sqlite_master WHERE type='table' AND name='users';`);
+    const postsTableExists = await db.get(`SELECT name FROM sqlite_master WHERE type='table' AND name='posts';`);
+
+    if (usersTableExists && postsTableExists) {
+        console.log('Database tables already exist. Skipping initialization.');
+        await db.close();
+        return;
+    }
+
+    // If tables don't exist, initialize them and populate with sample data
+    await db.exec(`
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            hashedGoogleId TEXT NOT NULL UNIQUE,
+            avatar_url TEXT,
+            memberSince DATETIME NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS posts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            content TEXT NOT NULL,
+            username TEXT NOT NULL,
+            timestamp DATETIME NOT NULL,
+            likes INTEGER NOT NULL
+        );
+    `);
+
+    const test1 = generateAvatar('S');
+    const test2 = generateAvatar('A');
+    // Sample data - Replace these arrays with your own data
+    const users = [
+        { username: 'user1', hashedGoogleId: 'hashedGoogleId1', avatar_url: test1, memberSince: '2024-01-01 12:00:00' },
+        { username: 'user2', hashedGoogleId: 'hashedGoogleId2', avatar_url: test2, memberSince: '2024-01-02 12:00:00' }
+    ];
+
+    const posts = [
+        { title: 'First Post', content: 'This is the first post', username: 'user1', timestamp: '2024-01-01 12:30:00', likes: 0 },
+        { title: 'Second Post', content: 'This is the second post', username: 'user2', timestamp: '2024-01-02 12:30:00', likes: 0 }
+    ];
+
+    // Insert sample data into the database
+    await Promise.all(users.map(user => {
+        return db.run(
+            'INSERT INTO users (username, hashedGoogleId, avatar_url, memberSince) VALUES (?, ?, ?, ?)',
+            [user.username, user.hashedGoogleId, user.avatar_url, user.memberSince]
+        );
+    }));
+
+    await Promise.all(posts.map(post => {
+        return db.run(
+            'INSERT INTO posts (title, content, username, timestamp, likes) VALUES (?, ?, ?, ?, ?)',
+            [post.title, post.content, post.username, post.timestamp, post.likes]
+        );
+    }));
+
+    console.log('Database initialized with sample data.');
+    await db.close();
+}
+
+initializeDB().catch(err => {
+    console.error('Error initializing database:', err);
+});
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Support Functions and Variables
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 const test1 = generateAvatar('S');
 const test2 = generateAvatar('A');
@@ -212,12 +286,33 @@ let users = [
 ];
 
 // Function to find a user by username
-function findUserByUsername(username) {
-    for(let user of users){
-        if(user.username === username){
-            return user;
+
+async function findUserByUsername(username) {
+    const db = await sqlite.open({ filename: dbFileName, driver: sqlite3.Database });
+
+    console.log('Opening database file:', dbFileName);
+
+    // Check if the users table exists
+    const usersTableExists = await db.get(`SELECT name FROM sqlite_master WHERE type='table' AND name='users';`);
+    if (usersTableExists) {
+        console.log('Users table exists.');
+        const users = await db.all('SELECT * FROM users');
+        if (users.length > 0) {
+            for (let i = 0; i < users.length; i++) {
+                if (username === users[i].username) {
+                    await db.close();
+                    return users[i]; // Return the user once found
+                }
+            }
+            console.log('User not found.');
+        } else {
+            console.log('No users found.');
         }
+    } else {
+        console.log('Users table does not exist.');
     }
+
+    await db.close();
     return false;
 }
 
@@ -314,6 +409,8 @@ function updatePostLikes(req, res) {
 
 //Function to find the first letter of a username
 function getFirstLetter(username){
+
+    console.log("FIRST LETTER: ", username);    
     const letters = username.match(/[a-zA-z]/) //Array of letters matching regExp
 
     if(letters){
@@ -325,13 +422,20 @@ function getFirstLetter(username){
 }
 
 // Function to handle avatar generation and serving
-function handleAvatar(req, res) {
-    if(findUserByUsername(req.params.username).avatar_url === undefined){
-        findUserByUsername(req.params.username).avatar_url = generateAvatar(getFirstLetter(req.session.username));
-        return findUserByUsername(req.params.username).avatar_url;
-    }
-    else{
-        return findUserByUsername(req.params.username).avatar_url;
+async function handleAvatar(req, res) {
+    let user = await findUserByUsername(req.params.username);
+    if (user) {
+        console.log(user.username);
+        if (user.avatar_url === undefined) {
+            user.avatar_url = generateAvatar(getFirstLetter(req.session.username));
+            return user.avatar_url;
+        } else {
+            return user.avatar_url;
+        }
+    } else {
+        // Handle case where user is not found
+        console.log("User not found");
+        return null;
     }
 }
 
@@ -341,8 +445,38 @@ function getCurrentUser(req) {
 }
 
 // Function to get all posts, sorted by latest first
-function getPosts() {
-    return posts.slice().reverse();
+
+//will need to fetch from db and then build a array to return
+
+async function getPosts() {
+    const db = await sqlite.open({ filename: dbFileName, driver: sqlite3.Database });
+
+    console.log('Opening database file:', dbFileName);
+
+    let userPosts  = [];
+
+    const postsTableExists = await db.get(`SELECT name FROM sqlite_master WHERE type='table' AND name='posts';`);
+    if (postsTableExists) {
+        console.log('Posts table exists.');
+        const posts = await db.all('SELECT * FROM posts');
+        if (posts.length > 0) {
+            posts.forEach(post => {
+                userPosts.push(post);
+            });
+        } else {
+            console.log('No posts found.');
+        }
+    } else {
+        console.log('Posts table does not exist.');
+    }
+
+    await db.close();
+    console.log("Posts: ");
+    for(let post of userPosts){
+        console.log(post);
+    }
+
+    return userPosts;
 }
 
 // Function to add a new post
