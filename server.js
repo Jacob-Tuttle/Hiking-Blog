@@ -288,32 +288,33 @@ let users = [
 // Function to find a user by username
 
 async function findUserByUsername(username) {
-    const db = await sqlite.open({ filename: dbFileName, driver: sqlite3.Database });
+    try {
+        const db = await sqlite.open({ filename: dbFileName, driver: sqlite3.Database });
 
-    console.log('Opening database file:', dbFileName);
+        console.log('Opening database file:', dbFileName);
 
-    // Check if the users table exists
-    const usersTableExists = await db.get(`SELECT name FROM sqlite_master WHERE type='table' AND name='users';`);
-    if (usersTableExists) {
-        console.log('Users table exists.');
-        const users = await db.all('SELECT * FROM users');
-        if (users.length > 0) {
-            for (let i = 0; i < users.length; i++) {
-                if (username === users[i].username) {
-                    await db.close();
-                    return users[i]; // Return the user once found
-                }
-            }
-            console.log('User not found.');
-        } else {
-            console.log('No users found.');
+        // Check if the users table exists
+        const usersTableExists = await db.get(`SELECT name FROM sqlite_master WHERE type='table' AND name='users';`);
+        if (!usersTableExists) {
+            console.log('Users table does not exist.');
+            await db.close();
+            return false;
         }
-    } else {
-        console.log('Users table does not exist.');
-    }
 
-    await db.close();
-    return false;
+        const user = await db.get('SELECT * FROM users WHERE username = ?', [username]);
+        await db.close();
+
+        if (user) {
+            console.log('User found:', user.username);
+            return user;
+        } else {
+            console.log('User not found.');
+            return false;
+        }
+    } catch (error) {
+        console.error('Error finding user:', error);
+        return false;
+    }
 }
 
 // Function to find a user by user ID
