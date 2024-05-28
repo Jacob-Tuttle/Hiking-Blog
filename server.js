@@ -318,13 +318,34 @@ async function findUserByUsername(username) {
 }
 
 // Function to find a user by user ID
-function findUserById(userId) {
-    for(let user of users){
-        if(user.id === userId){
-            return user;
+async function findUserById(userId) {
+    try {
+        const db = await sqlite.open({ filename: dbFileName, driver: sqlite3.Database });
+
+        console.log('Opening database file:', dbFileName);
+
+        // Check if the users table exists
+        const usersTableExists = await db.get(`SELECT name FROM sqlite_master WHERE type='table' AND name='users';`);
+        if (!usersTableExists) {
+            console.log('Users table does not exist.');
+            await db.close();
+            return false;
         }
+
+        const user = await db.get('SELECT * FROM users WHERE id = ?', [userId]);
+        await db.close();
+
+        if (user) {
+            console.log('id found:', user.id);
+            return user;
+        } else {
+            console.log('id not found.');
+            return false;
+        }
+    } catch (error) {
+        console.error('Error finding id:', error);
+        return false;
     }
-    return false;
 }
 
 //get the current date and format it
