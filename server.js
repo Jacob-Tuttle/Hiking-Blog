@@ -5,6 +5,9 @@ const canvas = require('canvas');
 const { createCanvas } = require('canvas');
 const sqlite = require('sqlite');
 const sqlite3 = require('sqlite3');
+const dotenv = require('dotenv')
+const passport = require('passport');
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
 
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
