@@ -154,9 +154,9 @@ app.get('/avatar/:username', async (req, res) => {
 
 //Register post route to add user name to registered user name list
 //
-app.post('/register', (req, res) => {
-    if(!findUserByUsername(req.body.userName)){
-        registerUser(req, res);
+app.post('/register', async (req, res) => {
+    if(!await findUserByUsername(req.body.userName)){
+        await registerUser(req, res);
         res.redirect('/register'); //Return to login/reg page, user has been added
     }
     else{
@@ -247,12 +247,12 @@ async function initializeDB() {
     // Sample data - Replace these arrays with your own data
     const users = [
         { username: 'SampleUser', hashedGoogleId: 'hashedGoogleId1', avatar_url: test1, memberSince: '2024-01-01 12:00:00' },
-        { username: 'user2', hashedGoogleId: 'hashedGoogleId2', avatar_url: test2, memberSince: '2024-01-02 12:00:00' }
+        { username: 'AnotherUser', hashedGoogleId: 'hashedGoogleId2', avatar_url: test2, memberSince: '2024-01-02 12:00:00' }
     ];
 
     const posts = [
         { title: 'First Post', content: 'This is the first post', username: 'SampleUser', timestamp: '2024-01-01 12:30:00', likes: 0 },
-        { title: 'Second Post', content: 'This is the second post', username: 'user2', timestamp: '2024-01-02 12:30:00', likes: 0 }
+        { title: 'Second Post', content: 'This is the second post', username: 'AnotherUser', timestamp: '2024-01-02 12:30:00', likes: 0 }
     ];
 
     // Insert sample data into the database
@@ -355,14 +355,18 @@ function getDate(){
 }
 
 // Function to add a new user
-function addUser(username) {
-    tempUser = {
-        id: users[users.length-1].id+1, 
-        username: username, 
-        avatar_url: generateAvatar(getFirstLetter(username)), 
-        memberSince: getDate(),
-    };
-    users.push(tempUser);
+async function addUser(username) {    
+    try {
+        const db = await sqlite.open({ filename: dbFileName, driver: sqlite3.Database });
+        await db.run(
+            'INSERT INTO users (username, hashedGoogleId, avatar_url, memberSince) VALUES (?, ?, ?, ?)',
+            [username, "Undefined", generateAvatar(getFirstLetter(username)), getDate()]
+        );
+        await db.close();
+        console.log('Post added successfully');
+    } catch (error) {
+        console.error('Error adding user:', error);
+    }
 }
 
 // Middleware to check if user is authenticated
@@ -376,8 +380,8 @@ function isAuthenticated(req, res, next) {
 }
 
 // Function to register a user
-function registerUser(req, res) {
-    addUser(req.body.userName);
+async function registerUser(req, res) {
+    await addUser(req.body.userName);
 }
 
 // Function to login a user
