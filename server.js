@@ -130,9 +130,9 @@ app.post('/posts', async (req, res) => {
     await addPost(req.body.title, req.body.content, await getCurrentUser(req));
     res.redirect('/');
 });
-app.post('/like/:id', (req, res) => {
+app.post('/like/:id', async (req, res) => {
     if(req.session.username !== undefined){
-        updatePostLikes(req,res);
+        await updatePostLikes(req,res);
     }
     res.redirect('/');
 });
@@ -282,13 +282,6 @@ initializeDB().catch(err => {
 // Support Functions and Variables
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-const test1 = generateAvatar('S');
-const test2 = generateAvatar('A');
-let users = [
-    { id: 1, username: 'SampleUser', avatar_url: test1, memberSince: '2024-01-01 08:00' },
-    { id: 2, username: 'AnotherUser', avatar_url: test2, memberSince: '2024-01-02 09:00' },
-];
-
 // Function to find a user by username
 
 async function findUserByUsername(username) {
@@ -431,14 +424,19 @@ function renderProfile(req, res) {
 }
 
 // Function to update post likes
-function updatePostLikes(req, res) {
-    for(let post of posts){
-        if(String(post.id) === req.params.id){
-            post.likes += 1;
-            return;
-        }
+async function updatePostLikes(req, res) {
+    try {
+        const db = await sqlite.open({ filename: dbFileName, driver: sqlite3.Database });
+        // Retrieve the post by its id
+        const post = await db.get('SELECT * FROM posts WHERE id = ?', [req.params.id]);
+        await db.run(
+            'UPDATE posts SET likes = ? WHERE id = ?',
+            [post.likes + 1, req.params.id]
+        );
+        await db.close();
+    } catch (error) {
+        console.error('Error updating likes: ', error);
     }
-    return;
 }
 
 //Function to find the first letter of a username
@@ -476,9 +474,6 @@ async function getCurrentUser(req) {
 }
 
 // Function to get all posts, sorted by latest first
-
-//will need to fetch from db and then build a array to return
-
 async function getPosts() {
     const db = await sqlite.open({ filename: dbFileName, driver: sqlite3.Database });
 
@@ -486,7 +481,6 @@ async function getPosts() {
 
     const postsTableExists = await db.get(`SELECT name FROM sqlite_master WHERE type='table' AND name='posts';`);
     if (postsTableExists) {
-        console.log('Posts table exists.');
         const posts = await db.all('SELECT * FROM posts');
         if (posts.length > 0) {
             posts.forEach(post => {
