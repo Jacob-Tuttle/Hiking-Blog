@@ -136,10 +136,10 @@ app.post('/like/:id', async (req, res) => {
     }
     res.redirect('/');
 });
-app.get('/profile', isAuthenticated, (req, res) => {
+app.get('/profile', isAuthenticated, async (req, res) => {
     // TODO: Render profile page
-    const user = getCurrentUser(req);
-    const posts = renderProfile(req, res)
+    const user = await getCurrentUser(req);
+    const posts = await renderProfile(req, res)
     res.render('profile', {posts, user})
 });
 
@@ -366,6 +366,7 @@ async function addUser(username) {
         console.log('Post added successfully');
     } catch (error) {
         console.error('Error adding user:', error);
+
     }
 }
 
@@ -397,7 +398,6 @@ async function loginUser(req, res) {
             req.session.memberSince = user.memberSince;
         } else {
             console.log("User not found during login.");
-            // Handle user not found case
         }
     } catch (error) {
         console.error("Error during login:", error);
@@ -417,14 +417,27 @@ function logoutUser(req, res) {
 }
 
 // Function to render the profile page
-function renderProfile(req, res) {
+async function renderProfile(req, res) {
+    const db = await sqlite.open({ filename: dbFileName, driver: sqlite3.Database });
+
     let filteredPosts = [];
-    for(let post of posts){
-        if(post.username === req.session.username){
-            filteredPosts.push(post);
+
+    const postsTableExists = await db.get(`SELECT name FROM sqlite_master WHERE type='table' AND name='posts';`);
+    if (postsTableExists) {
+        const posts = await db.all('SELECT * FROM posts WHERE username=?', [req.session.username]);
+        if (posts.length > 0) {
+            posts.forEach(post => {
+                filteredPosts.push(post);
+            });
+        } else {
+            console.log('No posts found.');
         }
+    } else {
+        console.log('Posts table does not exist.');
     }
-    return filteredPosts;
+
+    await db.close();
+    return filteredPosts.slice().reverse();;
 }
 
 // Function to update post likes
