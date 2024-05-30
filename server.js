@@ -360,7 +360,7 @@ async function addUser(username) {
         const db = await sqlite.open({ filename: dbFileName, driver: sqlite3.Database });
         await db.run(
             'INSERT INTO users (username, hashedGoogleId, avatar_url, memberSince) VALUES (?, ?, ?, ?)',
-            [username, "Undefined", generateAvatar(getFirstLetter(username)), getDate()]
+            [username, Math.floor(Math.random() * (10000000 - 0 + 1)) + 0, generateAvatar(getFirstLetter(username)), getDate()]
         );
         await db.close();
         console.log('Post added successfully');
