@@ -514,7 +514,7 @@ async function getPosts() {
     }
 
     await db.close();
-    return userPosts.slice().reverse();
+    return userPosts;
 }
 
 // Function to add a new post

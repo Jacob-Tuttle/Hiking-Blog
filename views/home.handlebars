@@ -33,9 +33,14 @@
     <!---->
     <section class="posts-list" {{#unless posts.length}}style="margin-right: 25%"{{/unless}}>
         <h1>Recent Posts</h1>
+        <h2>Sort Posts</h2>
+        <section style="margin-bottom: 20px">
+            <button onclick="sortPostsByLikes()">By Likes</button>
+            <button onclick="sortPostsByRecency()">By Recency</button>
+        </section>
         <!-- recent posts -->
         {{#if posts.length}}
-        <ul>
+        <ul id="ul-posts">
             {{#each posts}}
                 <!-- you have to pass the user in to posts and this is the syntax -->
                 {{> post this user=../user }}            
@@ -47,6 +52,68 @@
         {{/if}}
     </section>
 </section>
+
+<!--JavaScript to sort posts-->
+<script>
+    let posts = [
+        {{#each posts}}
+            {
+                id: "{{id}}",
+                title: "{{title}}",
+                content: "{{content}}",
+                likes: {{likes}},
+                timestamp: "{{timestamp}}",
+                username: "{{username}}",
+                avatar_url: "{{avatar_url}}"
+            }{{#unless @last}},{{/unless}}
+        {{/each}}
+    ];
+
+
+    function sortPostsByLikes() {
+        console.log("HELLo");
+        posts.sort((a, b) => b.likes - a.likes);
+        renderPosts();
+    }
+
+    function sortPostsByRecency() {
+        posts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        renderPosts()
+    }
+
+    function renderPosts() {
+        const postsContainer = document.getElementById('ul-posts');
+        postsContainer.innerHTML = ''; // Clear current posts
+
+        posts.forEach(post => {
+            const postElement = document.createElement('li');
+            postElement.innerHTML = `
+                <div class="post">
+                    <div class="post-avatar">
+                        <img src="${post.avatar_url ? post.avatar_url : '/avatar/' + post.username}" 
+                            alt="User ${post.username}" 
+                            class="header-avatar">
+                    </div>
+                    <div class="post-content preserve-newlines">
+                        <h1>${post.title}</h1>
+                        <section>${post.content}</section>
+                        <div class="post-status-bar">
+                            <div class="interaction-section" style="display: flex; flex-direction: row; align-items:center">
+                                ${post.username === '{{user.username}}' ? 
+                                    `<a onclick="handleDeleteClick(${post.id})"><i class="fas fa-trash-alt"></i></a>` : 
+                                    `<a onclick="handleLikeClick(${post.id})">♥</a>`
+                                }
+                                <p>${post.likes} likes</p>
+                            </div>
+                            <p>posted by ${post.username} on ${post.timestamp}</p>
+                        </div>        
+                    </div>
+                </div>
+            `;
+            postsContainer.appendChild(postElement);
+        });
+    }
+</script>
 
 {{! JavaScript for Emoji Integration }}
 <script>
