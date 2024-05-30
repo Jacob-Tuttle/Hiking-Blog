@@ -102,9 +102,7 @@ app.use(express.json());                            // Parse JSON bodies (as sen
 //
 app.get('/', async (req, res) => {
     const posts = await getPosts();
-    const user = getCurrentUser(req) || {};
-
-    console.log("POST LENGTH: ", posts.length);
+    const user = await getCurrentUser(req) || {};
     res.render('home', { posts, user});
 });
 
@@ -128,8 +126,8 @@ app.get('/error', (req, res) => {
 
 // Additional routes that you must implement
 
-app.post('/posts', (req, res) => {
-    addPost(req.body.title, req.body.content, getCurrentUser(req));
+app.post('/posts', async (req, res) => {
+    await addPost(req.body.title, req.body.content, await getCurrentUser(req));
     res.redirect('/');
 });
 app.post('/like/:id', (req, res) => {
@@ -168,15 +166,21 @@ app.post('/register', (req, res) => {
 
 //Sets session variables and redirects to homepage
 //
-app.post('/login', (req, res) => {
-    if(findUserByUsername(req.body.userName)){
-        loginUser(req, res);
-        res.redirect('/');
-    }
-    else{
-        res.redirect('/login?error=Not%20Found');
+app.post('/login', async (req, res) => {
+    try {
+        let user = await findUserByUsername(req.body.userName);
+        if (user) {
+            await loginUser(req, res);
+            res.redirect('/');
+        } else {
+            res.redirect('/login?error=Not%20Found');
+        }
+    } catch (error) {
+        console.error('Error in login route:', error);
+        res.redirect('/login?error=Internal%20Server%20Error');
     }
 });
+
 //Clears session variables and redirects to homepage
 //
 app.get('/logout', (req, res) => {
@@ -186,8 +190,8 @@ app.get('/logout', (req, res) => {
 
 //Deletes a post based on a post id
 //
-app.post('/delete/:id', isAuthenticated, (req, res) => {
-    deletePost(req,res);
+app.post('/delete/:id', isAuthenticated, async (req, res) => {
+    await deletePost(req,res);
     res.redirect('/');
 });
 
@@ -242,12 +246,12 @@ async function initializeDB() {
     const test2 = generateAvatar('A');
     // Sample data - Replace these arrays with your own data
     const users = [
-        { username: 'user1', hashedGoogleId: 'hashedGoogleId1', avatar_url: test1, memberSince: '2024-01-01 12:00:00' },
+        { username: 'SampleUser', hashedGoogleId: 'hashedGoogleId1', avatar_url: test1, memberSince: '2024-01-01 12:00:00' },
         { username: 'user2', hashedGoogleId: 'hashedGoogleId2', avatar_url: test2, memberSince: '2024-01-02 12:00:00' }
     ];
 
     const posts = [
-        { title: 'First Post', content: 'This is the first post', username: 'user1', timestamp: '2024-01-01 12:30:00', likes: 0 },
+        { title: 'First Post', content: 'This is the first post', username: 'SampleUser', timestamp: '2024-01-01 12:30:00', likes: 0 },
         { title: 'Second Post', content: 'This is the second post', username: 'user2', timestamp: '2024-01-02 12:30:00', likes: 0 }
     ];
 
@@ -291,7 +295,6 @@ async function findUserByUsername(username) {
     try {
         const db = await sqlite.open({ filename: dbFileName, driver: sqlite3.Database });
 
-        console.log('Opening database file:', dbFileName);
 
         // Check if the users table exists
         const usersTableExists = await db.get(`SELECT name FROM sqlite_master WHERE type='table' AND name='users';`);
@@ -305,7 +308,6 @@ async function findUserByUsername(username) {
         await db.close();
 
         if (user) {
-            console.log('User found:', user.username);
             return user;
         } else {
             console.log('User not found.');
@@ -322,8 +324,6 @@ async function findUserById(userId) {
     try {
         const db = await sqlite.open({ filename: dbFileName, driver: sqlite3.Database });
 
-        console.log('Opening database file:', dbFileName);
-
         // Check if the users table exists
         const usersTableExists = await db.get(`SELECT name FROM sqlite_master WHERE type='table' AND name='users';`);
         if (!usersTableExists) {
@@ -336,7 +336,6 @@ async function findUserById(userId) {
         await db.close();
 
         if (user) {
-            console.log('id found:', user.id);
             return user;
         } else {
             console.log('id not found.');
@@ -389,14 +388,27 @@ function registerUser(req, res) {
 }
 
 // Function to login a user
-function loginUser(req, res) {
-    const user = findUserByUsername(req.body.userName);
-    req.session.userId = user.id;
-    req.session.loggedIn = true;
-    req.session.username = user.username;
-    req.session.avatar_url = user.avatar_url;
-    req.session.memberSince = user.memberSince;
+async function loginUser(req, res) {
+    try {
+        const user = await findUserByUsername(req.body.userName);
+        if (user) {
+            console.log("LOGGING IN: ", user.username);
+            req.session.userId = user.id;
+            req.session.loggedIn = true;
+            req.session.username = user.username;
+            req.session.avatar_url = user.avatar_url;
+            req.session.memberSince = user.memberSince;
+        } else {
+            console.log("User not found during login.");
+            // Handle user not found case
+        }
+    } catch (error) {
+        console.error("Error during login:", error);
+        // Handle error case
+    }
 }
+
+
 
 // Function to logout a user
 function logoutUser(req, res) {
@@ -431,8 +443,6 @@ function updatePostLikes(req, res) {
 
 //Function to find the first letter of a username
 function getFirstLetter(username){
-
-    console.log("FIRST LETTER: ", username);    
     const letters = username.match(/[a-zA-z]/) //Array of letters matching regExp
 
     if(letters){
@@ -447,7 +457,6 @@ function getFirstLetter(username){
 async function handleAvatar(req, res) {
     let user = await findUserByUsername(req.params.username);
     if (user) {
-        console.log(user.username);
         if (user.avatar_url === undefined) {
             user.avatar_url = generateAvatar(getFirstLetter(req.session.username));
             return user.avatar_url;
@@ -462,8 +471,8 @@ async function handleAvatar(req, res) {
 }
 
 // Function to get the current user from session
-function getCurrentUser(req) {
-    return findUserById(req.session.userId);
+async function getCurrentUser(req) {
+    return await findUserByUsername(req.session.username);
 }
 
 // Function to get all posts, sorted by latest first
@@ -472,8 +481,6 @@ function getCurrentUser(req) {
 
 async function getPosts() {
     const db = await sqlite.open({ filename: dbFileName, driver: sqlite3.Database });
-
-    console.log('Opening database file:', dbFileName);
 
     let userPosts  = [];
 
@@ -493,58 +500,53 @@ async function getPosts() {
     }
 
     await db.close();
-    console.log("Posts: ");
-    for(let post of userPosts){
-        console.log(post);
-    }
-
-    return userPosts;
+    return userPosts.slice().reverse();
 }
 
 // Function to add a new post
-function addPost(title, content, user) {
-    let ID;
-    if(posts.length === 0){
-        ID = 1;
+async function addPost(title, content, user) {
+    try {
+        const db = await sqlite.open({ filename: dbFileName, driver: sqlite3.Database });
+        await db.run(
+            'INSERT INTO posts (title, content, username, timestamp, likes) VALUES (?, ?, ?, ?, ?)',
+            [title, content, user.username, getDate(), 0]
+        );
+        await db.close();
+        console.log('Post added successfully');
+    } catch (error) {
+        console.error('Error adding post:', error);
     }
-    else{
-        ID = posts[posts.length-1].id+1;
-    }
-    const tempPost = {
-        id: ID,
-        title: title,
-        content: content,
-        username: user.username,
-        timestamp: getDate(),
-        likes: 0
-    };
-    posts.push(tempPost);
 }
 
 //Function to delete a post
-function deletePost(req,res){
-    if(verifyOwner(req)){
-        let index = -1;
-        for(let x = 0; x<posts.length; x++){
-            if(req.params.id === String(posts[x].id)){
-                index = x;
-                break;
-            }
+async function deletePost(req,res){
+    try {
+        const db = await sqlite.open({ filename: dbFileName, driver: sqlite3.Database });
+        
+        // Retrieve the post by its id
+        const post = await db.get('SELECT * FROM posts WHERE id = ?', [req.params.id]);
+        
+        if (!post) {
+            console.log('Post not found');
+            await db.close();
+            return;
         }
-        posts.splice(index,1);
+        
+        // Check if the username matches
+        if (post.username !== req.session.username) {
+            console.log('Username does not match');
+            await db.close();
+            return;
+        }
+        
+        // Delete the post if the username matches
+        await db.run('DELETE FROM posts WHERE id = ?', [req.params.id]);
+        await db.close();
+        console.log('Post deleted successfully');
+    } catch (error) {
+        console.error('Error deleting post:', error);
     }
-}
 
-//Verify that post from the requested id has 
-//matching username with the currently logged in user
-function verifyOwner(req){
-    for(let post of posts){
-        if(String(post.id) === req.params.id){
-            if(post.username === req.session.username)
-                return true;
-        }
-    }
-    return false;
 }
 
 // Function to generate an image avatar
