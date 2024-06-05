@@ -428,7 +428,7 @@ async function deleteUser (req, res){
     }
 }
 
-//function to delete all a users posts from the db
+//function to delete all of the posts from a user in the db
 async function deleteUserPosts (req, res){
     try{
         const db = await sqlite.open({filename: dbFileName, driver: sqlite3.Database});
