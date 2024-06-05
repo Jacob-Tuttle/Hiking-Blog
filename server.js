@@ -247,6 +247,13 @@ app.post('/delete/:id', isAuthenticated, async (req, res) => {
     res.redirect('/');
 });
 
+app.post('/deleteAccount', isAuthenticated, async (req, res) => {
+    await deleteUserPosts(req, res);
+    await deleteUser(req, res);
+    await logoutUser(req, res);
+    res.redirect('/googleLogout');
+});
+
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Server Activation
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -340,8 +347,51 @@ initializeDB().catch(err => {
 });
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// Support Functions and Variables
+// Support Functions
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+async function deleteUser (req, res){
+    try{
+        const db = await sqlite.open({filename: dbFileName, driver: sqlite3.Database});
+
+        const user = await db.get('SELECT * FROM users WHERE username = ?', [req.session.username]);
+
+        if (!user){
+            console.log('User not found');
+            await db.close();
+            return;
+        }
+
+        await db.run('DELETE FROM users WHERE username = ?', [req.session.username]);
+        await db.close();
+        console.log('user deleted succefully');
+    }
+    catch (error) {
+        console.error('Error deleting user:', error);
+    }
+}
+
+async function deleteUserPosts (req, res){
+    try{
+        const db = await sqlite.open({filename: dbFileName, driver: sqlite3.Database});
+
+        const user = await db.get('SELECT * FROM users WHERE username = ?', [req.session.username]);
+
+        if (!user){
+            console.log('User not found');
+            await db.close();
+            return;
+        }
+
+        await db.run('DELETE FROM posts WHERE username = ?', [req.session.username]);
+        await db.close();
+        console.log('user posts deleted succefully');
+    }
+    catch (error) {
+        console.error('Error deleting user posts:', error);
+    }
+}
+
 
 // Function to find a user by username
 

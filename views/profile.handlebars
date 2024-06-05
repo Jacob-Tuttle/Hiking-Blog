@@ -13,6 +13,9 @@
         <h1>User Profile</h1>
         <p><strong>Username: </strong> {{user.username}}</p>
         <p><strong>Member since: </strong>{{user.memberSince}}</p>
+        <form action="/deleteAccount" method="POST" onsubmit="confirmDeletion(event)"> 
+            <button type="submit" >Delete Account</button>
+        </form>
     </section>
 </div>
 
@@ -31,3 +34,13 @@
         <p>You have not posted yet, poster.</p>
     {{/if}}
 </section>
+
+<script>
+    function confirmDeletion(event) {
+        event.preventDefault(); // Prevent the form from submitting
+        const userConfirmation = confirm("Are you sure you want to delete your account?");
+        if (userConfirmation) {
+            event.target.submit(); // If the user confirms, submit the form
+        }
+    }
+</script>
