@@ -16,6 +16,14 @@
         <form action="/deleteAccount" method="POST" onsubmit="confirmDeletion(event)"> 
             <button type="submit" >Delete Account</button>
         </form>
+        <title>New Username:</title>
+        {{#if regError}}
+            <p style="color: red;">{{regError}}</p>
+        {{/if}}
+        <form action="/updateUsername" method="POST"> 
+            <input name="userName" pattern="[a-zA-Z0-9!$#&]+" title="Only letters, numbers, !$#& are allowed" required>
+            <button type="submit" >Update Username</button>
+        </form>
     </section>
 </div>
 

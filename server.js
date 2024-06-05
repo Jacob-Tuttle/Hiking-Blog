@@ -105,11 +105,10 @@ app.use(
     })
 );
 
+//Passport set up
 app.use(passport.initialize());
 app.use(passport.session());
-// Replace any of these variables below with constants for your application. These variables
-// should be used in your template files. 
-// 
+
 // Middleware to set local variables for templates
 app.use((req, res, next) => {
     res.locals.appName = 'Hiking Trail Blog';
@@ -150,31 +149,37 @@ app.get('/registerUsername', (req, res) => {
 app.get('/login', (req, res) => {
     res.render('login', { loginError: req.query.error })
 });
+
 // Error route: render error page
 //
 app.get('/error', (req, res) => {
     res.render('error');
 });
 
-// Additional routes that you must implement
-
+//Adds a new post to the db
+//
 app.post('/posts', async (req, res) => {
     await addPost(req.body.title, req.body.content, await getCurrentUser(req));
     res.redirect('/');
 });
+
+//Update a posts likes
+//
 app.post('/like/:id', async (req, res) => {
     if(req.session.username !== undefined){
         await updatePostLikes(req,res);
     }
     res.redirect('/');
 });
+
+//Returns profile template
+//
 app.get('/profile', isAuthenticated, async (req, res) => {
     // TODO: Render profile page
     const user = await getCurrentUser(req);
     const posts = await renderProfile(req, res)
-    res.render('profile', {posts, user})
+    res.render('profile', {posts, user, regError: req.query.error})
 });
-
 
 //Reuturns a user avatar based on a username
 //
@@ -184,8 +189,12 @@ app.get('/avatar/:username', async (req, res) => {
     res.send(avatar);
 });
 
+//Directs the users to google OAuth sign in
+//
 app.get('/auth/google', passport.authenticate('google', { scope: ['profile'] }))
 
+//logs in the user if the hashedGoogle id exists, otherwise redirect to register
+//
 app.get('/auth/google/callback', 
     passport.authenticate('google', {failureRedirect: '/'}), 
     async (req, res) => {
@@ -212,6 +221,27 @@ app.get('/auth/google/callback',
         }
 });
 
+
+//Clears session variables and redirects to homepage
+//
+app.get('/logout', (req, res) => {
+    logoutUser(req,res);
+    res.redirect('/googleLogout');
+});
+
+//Logs out user from google
+//
+app.get('/googleLogout', (req, res) => {
+    res.render('googleLogout');
+});
+
+//redirects to home after succeful logout
+//
+app.get('/logoutCallback', (req, res) => {
+    res.redirect('/');
+});
+
+
 //Register post route to add user name to registered user name list
 //
 app.post('/registerUsername', async (req, res) => {
@@ -225,19 +255,18 @@ app.post('/registerUsername', async (req, res) => {
     }
 });
 
-//Clears session variables and redirects to homepage
+//Updates current users username
 //
-app.get('/logout', (req, res) => {
-    logoutUser(req,res);
-    res.redirect('/googleLogout');
-});
-
-app.get('/googleLogout', (req, res) => {
-    res.render('googleLogout');
-});
-
-app.get('/logoutCallback', (req, res) => {
-    res.redirect('/');
+app.post('/updateUsername', async (req,res) => {
+    const user = await findUserByUsername(req.body.userName);
+    if(user){
+        res.redirect('/Profile?error=Already%20Registered');
+    }
+    else{
+        await updateUserInDB(req, res);
+        req.session.username = req.body.userName;
+        res.redirect('/Profile');
+    }
 });
 
 //Deletes a post based on a post id
@@ -247,6 +276,9 @@ app.post('/delete/:id', isAuthenticated, async (req, res) => {
     res.redirect('/');
 });
 
+//Deletes a users account from the db and all posts
+//then logs them out of their session
+//
 app.post('/deleteAccount', isAuthenticated, async (req, res) => {
     await deleteUserPosts(req, res);
     await deleteUser(req, res);
@@ -350,6 +382,31 @@ initializeDB().catch(err => {
 // Support Functions
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+//Update a users username in the db
+async function updateUserInDB(req, res){
+    try {
+        // Open a connection to the database
+        const db = await sqlite.open({ filename: dbFileName, driver: sqlite3.Database });
+
+
+        // Update the username in the database
+        await db.run('UPDATE users SET username = ? WHERE username = ?', [req.body.userName, req.session.username]);
+        await db.run('UPDATE posts SET username = ? WHERE username = ?', [req.body.userName, req.session.username]);
+        //New avatar generation
+        const avatar = generateAvatar(getFirstLetter(req.body.userName));
+        await db.run('UPDATE users SET avatar_url = ? WHERE username = ?', [avatar, req.body.userName]);
+
+        // Close the database connection
+        await db.close();
+
+        // Respond with a success message
+        console.log('User updated successfully');
+    } catch (error) {
+        console.error('Error updating username:', error);
+    }
+}
+
+//delete a user from the db
 async function deleteUser (req, res){
     try{
         const db = await sqlite.open({filename: dbFileName, driver: sqlite3.Database});
@@ -371,6 +428,7 @@ async function deleteUser (req, res){
     }
 }
 
+//function to delete all a users posts from the db
 async function deleteUserPosts (req, res){
     try{
         const db = await sqlite.open({filename: dbFileName, driver: sqlite3.Database});
@@ -601,7 +659,7 @@ async function getCurrentUser(req) {
     return await findUserByUsername(req.session.username);
 }
 
-// Function to get all posts, sorted by latest first
+// Function to get all posts
 async function getPosts() {
     const db = await sqlite.open({ filename: dbFileName, driver: sqlite3.Database });
 
