@@ -8,6 +8,7 @@ const sqlite3 = require('sqlite3');
 const dotenv = require('dotenv')
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const crypto = require('crypto');
 
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -16,6 +17,31 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 
 const app = express();
 const PORT = 3000;
+
+// Load environment variables from .env file
+dotenv.config();
+
+// Use environment variables for client ID and secret
+const CLIENT_ID = process.env.CLIENT_ID;
+const CLIENT_SECRET = process.env.CLIENT_SECRET;
+
+// Configure passport
+passport.use(new GoogleStrategy({
+    clientID: CLIENT_ID,
+    clientSecret: CLIENT_SECRET,
+    callbackURL: `http://localhost:${PORT}/auth/google/callback`
+}, (token, tokenSecret, profile, done) => {
+    return done(null, profile);
+}));
+
+
+passport.serializeUser((user, done) => {
+    done(null, user);
+});
+
+passport.deserializeUser((obj, done) => {
+    done(null, obj);
+});
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -79,9 +105,12 @@ app.use(
     })
 );
 
+app.use(passport.initialize());
+app.use(passport.session());
 // Replace any of these variables below with constants for your application. These variables
 // should be used in your template files. 
 // 
+// Middleware to set local variables for templates
 app.use((req, res, next) => {
     res.locals.appName = 'Hiking Trail Blog';
     res.locals.copyrightYear = 2024;
@@ -91,9 +120,10 @@ app.use((req, res, next) => {
     next();
 });
 
-app.use(express.static('public'));                  // Serve static files
-app.use(express.urlencoded({ extended: true }));    // Parse URL-encoded bodies (as sent by HTML forms)
-app.use(express.json());                            // Parse JSON bodies (as sent by API clients)
+// Other middleware setup
+app.use(express.static('public'));
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Routes
@@ -111,16 +141,15 @@ app.get('/', async (req, res) => {
 
 // Register GET route is used for error response from registration
 //
-app.get('/register', (req, res) => {
-    res.render('loginRegister', { regError: req.query.error });
+app.get('/registerUsername', (req, res) => {
+    res.render('registerUsername', { regError: req.query.error });
 });
 
 // Login route GET route is used for error response from login
 //
 app.get('/login', (req, res) => {
-    res.render('loginRegister', { loginError: req.query.error });
+    res.render('login', { loginError: req.query.error })
 });
-
 // Error route: render error page
 //
 app.get('/error', (req, res) => {
@@ -155,32 +184,44 @@ app.get('/avatar/:username', async (req, res) => {
     res.send(avatar);
 });
 
-//Register post route to add user name to registered user name list
-//
-app.post('/register', async (req, res) => {
-    if(!await findUserByUsername(req.body.userName)){
-        await registerUser(req, res);
-        res.redirect('/register'); //Return to login/reg page, user has been added
-    }
-    else{
-        res.redirect('/register?error=Already%20Registered'); //Return to log/reg page with error
-    }
+app.get('/auth/google', passport.authenticate('google', { scope: ['profile'] }))
+
+app.get('/auth/google/callback', 
+    passport.authenticate('google', {failureRedirect: '/'}), 
+    async (req, res) => {
+        const googleId = req.user.id;
+        const hashedGoogleId = hashId(googleId)
+        req.session.hashedGoogleId = hashedGoogleId;
+
+        try {
+            let localUser = await findUserByHashedGoogleId(hashedGoogleId);
+            if (localUser) {
+                req.session.userId = localUser.id;
+                req.session.loggedIn = true;
+                req.session.username = localUser.username;
+                req.session.avatar_url = localUser.avatar_url;
+                req.session.memberSince = localUser.memberSince;
+                res.redirect('/');
+            } else {
+                res.redirect('/registerUsername');
+            }
+        }
+        catch(err){
+            console.error('Error finding user:', err);
+            res.redirect('/error');
+        }
 });
 
-//Sets session variables and redirects to homepage
+//Register post route to add user name to registered user name list
 //
-app.post('/login', async (req, res) => {
-    try {
-        let user = await findUserByUsername(req.body.userName);
-        if (user) {
-            await loginUser(req, res);
-            res.redirect('/');
-        } else {
-            res.redirect('/login?error=Not%20Found');
-        }
-    } catch (error) {
-        console.error('Error in login route:', error);
-        res.redirect('/login?error=Internal%20Server%20Error');
+app.post('/registerUsername', async (req, res) => {
+    if(!await findUserByUsername(req.body.userName)){
+        await registerUser(req, res);
+        await loginUser(req, res);
+        res.redirect('/'); //Return to login/reg page, user has been added
+    }
+    else{
+        res.redirect('/registerUsername?error=Already%20Registered'); //Return to log/reg page with error
     }
 });
 
@@ -188,6 +229,14 @@ app.post('/login', async (req, res) => {
 //
 app.get('/logout', (req, res) => {
     logoutUser(req,res);
+    res.redirect('/googleLogout');
+});
+
+app.get('/googleLogout', (req, res) => {
+    res.render('googleLogout');
+});
+
+app.get('/logoutCallback', (req, res) => {
     res.redirect('/');
 });
 
@@ -205,6 +254,15 @@ app.post('/delete/:id', isAuthenticated, async (req, res) => {
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//Hashing Function
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+const hashId = (id) => {
+    return crypto.createHash('sha256').update(id.toString()).digest('hex');
+};
+
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //Initlize DB
@@ -315,8 +373,8 @@ async function findUserByUsername(username) {
     }
 }
 
-// Function to find a user by user ID
-async function findUserById(userId) {
+// Function to find a user by google ID
+async function findUserByHashedGoogleId(hashedId) {
     try {
         const db = await sqlite.open({ filename: dbFileName, driver: sqlite3.Database });
 
@@ -328,7 +386,7 @@ async function findUserById(userId) {
             return false;
         }
 
-        const user = await db.get('SELECT * FROM users WHERE id = ?', [userId]);
+        const user = await db.get('SELECT * FROM users WHERE hashedGoogleId = ?', [hashedId]);
         await db.close();
 
         if (user) {
@@ -358,12 +416,13 @@ function getDate(){
 }
 
 // Function to add a new user
-async function addUser(username) {    
+async function addUser(username, req) {    
     try {
         const db = await sqlite.open({ filename: dbFileName, driver: sqlite3.Database });
+
         await db.run(
             'INSERT INTO users (username, hashedGoogleId, avatar_url, memberSince) VALUES (?, ?, ?, ?)',
-            [username, Math.floor(Math.random() * (10000000 - 0 + 1)) + 0, generateAvatar(getFirstLetter(username)), getDate()]
+            [username, req.session.hashedGoogleId, generateAvatar(getFirstLetter(username)), getDate()]
         );
         await db.close();
         console.log('Post added successfully');
@@ -385,10 +444,10 @@ function isAuthenticated(req, res, next) {
 
 // Function to register a user
 async function registerUser(req, res) {
-    await addUser(req.body.userName);
+    await addUser(req.body.userName, req);
 }
 
-// Function to login a user
+//Function to login a user
 async function loginUser(req, res) {
     try {
         const user = await findUserByUsername(req.body.userName);
@@ -408,8 +467,6 @@ async function loginUser(req, res) {
     }
 }
 
-
-
 // Function to logout a user
 function logoutUser(req, res) {
     req.session.userId = undefined;
@@ -417,6 +474,7 @@ function logoutUser(req, res) {
     req.session.username = undefined;
     req.session.avatar_url =  undefined;
     req.session.memberSince = undefined;
+    req.session.hashedGoogleId = undefined;
 }
 
 // Function to render the profile page

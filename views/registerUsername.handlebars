@@ -1,0 +1,20 @@
+{{! Use the main layout }}
+{{!< main }}
+
+<section class="register" style="display: flex; justify-content:center">
+    <section class = "register-area">
+        <h2>Register</h2>
+        <h3>Username:</h3>
+        <!-- errors will appear here -->
+        {{#if regError}}
+            <p style="color: red;">{{regError}}</p>
+        {{/if}}
+        <form action="/registerUsername" method="POST">
+            <!-- the registration form goes here -->
+            <title>Username:</title>
+            <input  name="userName" pattern="[a-zA-Z0-9!$#&]+" title="Only letters, numbers, !$#& are allowed" required>
+            <button type="submit">Register</button>
+        </form>
+
+    </section>
+</section>

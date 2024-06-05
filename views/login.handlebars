@@ -1,0 +1,18 @@
+{{! Use the main layout }}
+{{!< main }}
+
+<section class="login-register">
+    <section class = "login-area">
+        <h2>Login</h2>
+        <h3>Username:</h3>
+        <!-- errors will appear here -->
+        {{#if loginError}}
+            <p style="color: red;">{{loginError}}</p>
+        {{/if}}
+        <form action="/auth/google" method="GET">
+            <!-- the login form goes here -->   
+            <!--<input  name="userName" pattern="[a-zA-Z0-9!$#&]+" title="Only letters, numbers, !$#& are allowed" required>-->   
+            <button type="submit">Login</button>
+        </form>
+    </section>
+</section>
