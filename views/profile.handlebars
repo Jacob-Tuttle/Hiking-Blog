@@ -13,17 +13,19 @@
         <h1>User Profile</h1>
         <p><strong>Username: </strong> {{user.username}}</p>
         <p><strong>Member since: </strong>{{user.memberSince}}</p>
-        <form action="/deleteAccount" method="POST" onsubmit="confirmDeletion(event)"> 
-            <button type="submit" >Delete Account</button>
-        </form>
-        <title>New Username:</title>
-        {{#if regError}}
-            <p style="color: red;">{{regError}}</p>
-        {{/if}}
-        <form action="/updateUsername" method="POST"> 
-            <input name="userName" pattern="[a-zA-Z0-9!$#&]+" title="Only letters, numbers, !$#& are allowed" required>
-            <button type="submit" >Update Username</button>
-        </form>
+        <section class="profile-actions">
+            <form action="/deleteAccount" method="POST" onsubmit="confirmDeletion(event)"> 
+                <button type="submit" >Delete Account</button>
+            </form>
+            <title>New Username:</title>
+            {{#if regError}}
+                <p style="color: red;">{{regError}}</p>
+            {{/if}}
+            <form action="/updateUsername" method="POST"> 
+                <input name="userName" pattern="[a-zA-Z0-9!$#&]+" title="Only letters, numbers, !$#& are allowed" required>
+                <button type="submit" >Update Username</button>
+            </form>
+        </section>
     </section>
 </div>
 
