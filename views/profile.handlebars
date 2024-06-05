@@ -15,15 +15,15 @@
         <p><strong>Member since: </strong>{{user.memberSince}}</p>
         <section class="profile-actions">
             <form action="/deleteAccount" method="POST" onsubmit="confirmDeletion(event)"> 
-                <button type="submit" >Delete Account</button>
+                <button type="submit" style="background-color: red; border-radius: 10px">Delete Account</button>
             </form>
             <title>New Username:</title>
             {{#if regError}}
                 <p style="color: red;">{{regError}}</p>
             {{/if}}
             <form action="/updateUsername" method="POST"> 
-                <input name="userName" pattern="[a-zA-Z0-9!$#&]+" title="Only letters, numbers, !$#& are allowed" required>
-                <button type="submit" >Update Username</button>
+                <input name="userName" style="border-radius: 5px" pattern="[a-zA-Z0-9!$#&]+" title="Only letters, numbers, !$#& are allowed" required>
+                <button type="submit" style="margin-top: 5px; border-radius:10px">Update Username</button>
             </form>
         </section>
     </section>
