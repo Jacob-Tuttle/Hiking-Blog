@@ -1,2 +1,2 @@
-# ECS162-Microblog
+# Hiking-Blog
  
